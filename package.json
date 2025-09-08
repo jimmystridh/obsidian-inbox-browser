@@ -1,0 +1,75 @@
+{
+  "name": "obsidian-inbox-browser",
+  "version": "1.0.0",
+  "description": "Electron app for processing Obsidian inbox items with rich previews and actions",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "concurrently \"npm run dev-react\" \"node src/start-electron.js\"",
+    "dev-web": "concurrently \"npm run dev-react\" \"npm run server\"",
+    "dev-react": "PORT=6111 react-scripts start",
+    "server": "node server.js",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "electron-dev": "ELECTRON_IS_DEV=1 electron .",
+    "electron-pack": "electron-builder",
+    "preelectron-pack": "npm run build"
+  },
+  "homepage": "./",
+  "keywords": [
+    "obsidian",
+    "inbox",
+    "electron",
+    "productivity"
+  ],
+  "author": "Obsidian Inbox Browser",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "electron": "^25.9.8",
+    "electron-builder": "^24.6.4",
+    "wait-on": "^7.2.0"
+  },
+  "dependencies": {
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^14.5.1",
+    "cheerio": "^1.0.0-rc.12",
+    "chokidar": "^3.5.3",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "lucide-react": "^0.294.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "sqlite3": "^5.1.7",
+    "styled-components": "^6.1.1",
+    "web-vitals": "^2.1.4"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "build": {
+    "appId": "com.obsidian-inbox-browser.app",
+    "productName": "Obsidian Inbox Browser",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "build/**/*",
+      "src/main.js",
+      "src/preload.js",
+      "node_modules/**/*"
+    ]
+  }
+}
