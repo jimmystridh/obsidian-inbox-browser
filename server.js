@@ -75,10 +75,12 @@ app.get('/api/inbox', async (req, res) => {
 app.post('/api/metadata', async (req, res) => {
   try {
     const { url } = req.body;
+    console.log(`🌐 API: Received metadata request for: ${url}`);
     const metadata = await metadataFetcher.fetchMetadata(url);
+    console.log(`✅ API: Metadata fetch completed for: ${url}`);
     res.json({ success: true, metadata });
   } catch (error) {
-    console.error('Error fetching metadata:', error);
+    console.error('❌ API: Error fetching metadata:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
