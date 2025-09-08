@@ -49,7 +49,7 @@ npm run electron-pack
 - `src/services/InboxParser.js` - Parses Obsidian markdown files into structured items
 - `src/services/MetadataFetcher.js` - Fetches rich metadata from URLs (Twitter, GitHub, YouTube, Threads, Bluesky, etc.)
 - `src/services/TwitterAPIService.js` - Twitter/X API integration for enhanced tweet metadata
-- `src/services/ThreadsAPIService.js` - Threads scraping service using Playwright for rich post/profile data
+- `src/services/ThreadsAPIService.js` - Threads scraping service (DISABLED - Meta blocks automation)
 - `src/services/BlueskyAPIService.js` - Bluesky API integration using AT Protocol for rich post metadata
 - `src/services/PersistentCache.js` - SQLite-based caching for metadata
 
@@ -75,7 +75,7 @@ npm run electron-pack
 
 The app automatically detects and provides rich previews for:
 - Twitter/X posts (with API integration)
-- **Threads posts and profiles (with Playwright scraping)**
+- **Threads posts (basic HTML metadata only - rich scraping disabled due to Meta blocking)**
 - **Bluesky posts (with AT Protocol API integration)**
 - YouTube videos
 - GitHub repositories  
@@ -105,7 +105,7 @@ The codebase uses React Testing Library for component tests. Run tests with stan
 
 **Threads Integration Testing**
 ```bash
-# Test Threads scraping functionality 
+# Test Threads basic metadata (Playwright scraping disabled)
 npm run test-threads
 ```
 
