@@ -47,9 +47,10 @@ npm run electron-pack
 
 **Backend Services**
 - `src/services/InboxParser.js` - Parses Obsidian markdown files into structured items
-- `src/services/MetadataFetcher.js` - Fetches rich metadata from URLs (Twitter, GitHub, YouTube, Threads, etc.)
+- `src/services/MetadataFetcher.js` - Fetches rich metadata from URLs (Twitter, GitHub, YouTube, Threads, Bluesky, etc.)
 - `src/services/TwitterAPIService.js` - Twitter/X API integration for enhanced tweet metadata
 - `src/services/ThreadsAPIService.js` - Threads scraping service using Playwright for rich post/profile data
+- `src/services/BlueskyAPIService.js` - Bluesky API integration using AT Protocol for rich post metadata
 - `src/services/PersistentCache.js` - SQLite-based caching for metadata
 
 **Electron Process**
@@ -75,6 +76,7 @@ npm run electron-pack
 The app automatically detects and provides rich previews for:
 - Twitter/X posts (with API integration)
 - **Threads posts and profiles (with Playwright scraping)**
+- **Bluesky posts (with AT Protocol API integration)**
 - YouTube videos
 - GitHub repositories  
 - Spotify content
@@ -107,6 +109,12 @@ The codebase uses React Testing Library for component tests. Run tests with stan
 npm run test-threads
 ```
 
+**Bluesky Integration Testing**
+```bash
+# Test Bluesky API functionality
+npm run test-bluesky
+```
+
 **Note**: The Threads scraper uses Playwright which requires Chromium. The browser is automatically installed via `postinstall` script.
 
 ### Configuration
@@ -116,3 +124,14 @@ Key configuration values:
 - React dev port: 6111
 - Express server port: 6112
 - Electron requires Node.js 18 or 20 for compatibility
+
+### API Authentication
+
+**Bluesky Integration**: Optional authentication via `.env` file:
+```bash
+BSKY_IDENTIFIER="your-handle.bsky.social"
+BSKY_APP_PASSWORD="your-app-password"
+```
+- Without credentials: Uses public Bluesky endpoints (limited functionality)
+- With credentials: Full API access for rich post metadata
+- App passwords can be generated in Bluesky settings

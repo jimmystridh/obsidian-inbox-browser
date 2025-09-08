@@ -4,6 +4,7 @@ const cheerio = require('cheerio');
 const { PersistentCache } = require('./PersistentCache');
 const { TwitterAPIService } = require('./TwitterAPIService');
 const { ThreadsAPIService } = require('./ThreadsAPIService');
+const { BlueskyAPIService } = require('./BlueskyAPIService');
 
 class MetadataFetcher {
   constructor() {
@@ -17,6 +18,7 @@ class MetadataFetcher {
     // API services
     this.twitterAPI = new TwitterAPIService();
     this.threadsAPI = new ThreadsAPIService();
+    this.blueskyAPI = new BlueskyAPIService();
     
     // Enhanced rate limiting (excluding Twitter which uses TwitterAPI)
     this.requestQueue = [];
@@ -24,6 +26,7 @@ class MetadataFetcher {
     this.requestDelay = 1000; // 1 second between requests (non-Twitter)
     this.domainDelays = {
       'threads.net': 2000,     // 2 seconds for Threads
+      'bsky.app': 1000,        // 1 second for Bluesky
       'youtube.com': 1000,     // 1 second for YouTube
       'github.com': 500,       // 0.5 seconds for GitHub
       'linkedin.com': 2000     // 2 seconds for LinkedIn
@@ -104,6 +107,8 @@ class MetadataFetcher {
         return await this.fetchTwitterMetadata(url);
       case 'threads':
         return await this.fetchThreadsMetadata(url);
+      case 'bluesky':
+        return await this.fetchBlueskyMetadata(url);
       case 'youtube':
         return await this.fetchYouTubeMetadata(url);
       case 'github':
@@ -421,6 +426,109 @@ class MetadataFetcher {
         image: null,
         type: 'threads',
         platform: 'Threads',
+        error: error.message,
+        fallback: true,
+        source: 'final-fallback'
+      };
+      
+      // Cache fallback for even shorter time
+      const veryShortTTL = 30 * 60 * 1000; // 30 minutes
+      await this.persistentCache.set(url, finalFallback, veryShortTTL);
+      
+      return finalFallback;
+    }
+  }
+
+  async fetchBlueskyMetadata(url) {
+    console.log(`📘 Processing Bluesky URL: ${url}`);
+
+    // Check cache first
+    try {
+      const cachedBluesky = await this.persistentCache.get(url);
+      if (cachedBluesky) {
+        console.log(`💾 Using cached Bluesky data for ${url}`);
+        return cachedBluesky;
+      }
+    } catch (error) {
+      console.log(`⚠️ Error checking Bluesky cache: ${error.message}`);
+    }
+
+    // Try BlueskyAPIService first (rich API data)
+    try {
+      const blueskyData = await this.blueskyAPI.fetchPostMetadata(url);
+      
+      if (blueskyData) {
+        console.log(`✅ Got rich Bluesky post data: "${blueskyData.text?.substring(0, 50) || 'No text'}..."`);
+        
+        const metadata = {
+          url,
+          title: `@${blueskyData.author.handle}: ${blueskyData.text?.substring(0, 80) || 'Bluesky post'}${(blueskyData.text?.length || 0) > 80 ? '...' : ''}`,
+          description: blueskyData.text || 'Bluesky post',
+          fullText: blueskyData.text,
+          image: blueskyData.author.avatar || null,
+          type: 'bluesky',
+          author: blueskyData.author.handle,
+          authorDisplayName: blueskyData.author.displayName,
+          authorDID: blueskyData.author.did,
+          postId: blueskyData.id,
+          postURI: blueskyData.uri,
+          platform: 'Bluesky',
+          source: 'bluesky-api',
+          verified: blueskyData.author.verified,
+          createdAt: blueskyData.createdAt,
+          metrics: {
+            replies: blueskyData.metrics.replyCount || 0,
+            reposts: blueskyData.metrics.repostCount || 0,
+            likes: blueskyData.metrics.likeCount || 0,
+            quotes: blueskyData.metrics.quoteCount || 0
+          },
+          embed: blueskyData.embed,
+          reply: blueskyData.reply,
+          languages: blueskyData.langs || []
+        };
+        
+        // Cache the result
+        const ttl = 6 * 60 * 60 * 1000; // 6 hours TTL for Bluesky content
+        await this.persistentCache.set(url, metadata, ttl);
+        console.log(`✅ Successfully fetched and cached Bluesky metadata for ${url}`);
+        return metadata;
+      }
+    } catch (error) {
+      console.log(`🚫 BlueskyAPI failed for ${url}: ${error.message}`);
+    }
+
+    // Fallback to basic scraping (though Bluesky doesn't provide much via HTML scraping)
+    try {
+      console.log(`🔄 Falling back to basic scraping for ${url}`);
+      const response = await this.makeRequest(url);
+      const $ = cheerio.load(response.data);
+      
+      const fallbackMetadata = {
+        url,
+        title: $('meta[property="og:title"]').attr('content') || 'Bluesky Post',
+        description: $('meta[property="og:description"]').attr('content') || 'Bluesky social media post',
+        image: $('meta[property="og:image"]').attr('content'),
+        type: 'bluesky',
+        platform: 'Bluesky',
+        source: 'fallback-scraping'
+      };
+      
+      // Cache fallback for shorter time
+      const shortTTL = 2 * 60 * 60 * 1000; // 2 hours
+      await this.persistentCache.set(url, fallbackMetadata, shortTTL);
+      
+      return fallbackMetadata;
+    } catch (error) {
+      console.log(`🚫 Fallback scraping failed for ${url}: ${error.message}`);
+      
+      // Final fallback
+      const finalFallback = {
+        url,
+        title: 'Bluesky Post',
+        description: 'Bluesky social media post - rich preview unavailable',
+        image: null,
+        type: 'bluesky',
+        platform: 'Bluesky',
         error: error.message,
         fallback: true,
         source: 'final-fallback'
@@ -821,6 +929,7 @@ class MetadataFetcher {
       if (this.threadsAPI) {
         await this.threadsAPI.closeBrowser();
       }
+      // Bluesky API doesn't require special cleanup currently
       if (this.persistentCache) {
         // Close persistent cache if it has cleanup methods
         if (typeof this.persistentCache.close === 'function') {

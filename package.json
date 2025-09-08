@@ -12,6 +12,7 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "test-threads": "node test-threads.js",
+    "test-bluesky": "node test-bluesky.js",
     "eject": "react-scripts eject",
     "electron-dev": "ELECTRON_IS_DEV=1 electron .",
     "electron-pack": "electron-builder",
@@ -34,6 +35,7 @@
     "wait-on": "^7.2.0"
   },
   "dependencies": {
+    "@atproto/api": "^0.16.7",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.5.1",
