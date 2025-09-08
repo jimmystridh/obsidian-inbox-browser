@@ -4,10 +4,10 @@ const { MetadataFetcher } = require('./src/services/MetadataFetcher');
 async function testBlueskyImplementation() {
   console.log('📘 Testing Bluesky implementation...');
 
-  // Test URLs (these are sample formats - replace with real URLs when testing)
+  // Test URLs with real Bluesky content
   const testUrls = [
-    'https://bsky.app/profile/alice.bsky.social/post/3kb2uqblah4z5', // Sample Bluesky post URL format
-    'https://staging.bsky.app/profile/test.bsky.social/post/abc123def456', // Staging version
+    'https://bsky.app/profile/theguardian.com/post/3lycntc3zkb2p', // Real Guardian post
+    'https://bsky.app/profile/alice.bsky.social/post/3kb2uqblah4z5', // Sample format for comparison
   ];
 
   console.log('\n=== Testing BlueskyAPIService directly ===');
@@ -25,8 +25,21 @@ async function testBlueskyImplementation() {
       // Test if it's recognized as Bluesky URL
       console.log('🔍 Is Bluesky URL:', blueskyAPI.isBlueskyURL(url));
       
-      // Note: Actual fetching would require valid post URLs and potentially credentials
-      console.log('⏭️  Metadata fetching test skipped (requires valid Bluesky post URLs)');
+      // Try to fetch real metadata if it's the Guardian URL
+      if (url.includes('theguardian.com')) {
+        try {
+          console.log('🚀 Attempting to fetch real post metadata...');
+          const metadata = await blueskyAPI.fetchPostMetadata(url);
+          console.log('✅ Successfully fetched metadata:');
+          console.log('📝 Title:', metadata.title?.substring(0, 100) + '...');
+          console.log('👤 Author:', metadata.author?.handle);
+          console.log('📊 Metrics:', metadata.metrics);
+        } catch (error) {
+          console.log('❌ Failed to fetch real metadata:', error.message);
+        }
+      } else {
+        console.log('⏭️  Skipping metadata fetch for sample URL');
+      }
       
     } catch (error) {
       console.error(`❌ Error testing ${url}:`, error.message);
@@ -44,7 +57,22 @@ async function testBlueskyImplementation() {
       console.log(`🏷️  URL type for ${url}: ${urlType}`);
     }
     
-    console.log('⏭️  Metadata fetching test skipped (requires valid Bluesky post URLs with real content)');
+    // Try to fetch metadata for the Guardian URL
+    const guardianUrl = testUrls.find(url => url.includes('theguardian.com'));
+    if (guardianUrl) {
+      try {
+        console.log(`\n🔍 Testing MetadataFetcher with real URL: ${guardianUrl}`);
+        const metadata = await metadataFetcher.fetchMetadata(guardianUrl);
+        console.log('✅ MetadataFetcher result:');
+        console.log('📰 Title:', metadata.title?.substring(0, 80) + '...');
+        console.log('🎯 Platform:', metadata.platform);
+        console.log('🔗 Source:', metadata.source);
+      } catch (error) {
+        console.log('❌ MetadataFetcher test failed:', error.message);
+      }
+    } else {
+      console.log('⏭️  No real URL available for MetadataFetcher test');
+    }
     
   } catch (error) {
     console.error('❌ MetadataFetcher test failed:', error.message);

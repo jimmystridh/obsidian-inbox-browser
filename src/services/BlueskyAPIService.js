@@ -29,7 +29,7 @@ class BlueskyAPIService {
       let identifier, password;
       for (const line of lines) {
         if (line.startsWith('BSKY_IDENTIFIER=')) {
-          identifier = line.split('=')[1].replace(/"/g, '');
+          identifier = line.split('=')[1].replace(/"/g, '').replace('@', '');
         }
         if (line.startsWith('BSKY_APP_PASSWORD=')) {
           password = line.split('=')[1].replace(/"/g, '');
