@@ -4,10 +4,10 @@ const { MetadataFetcher } = require('./src/services/MetadataFetcher');
 async function testThreadsImplementation() {
   console.log('🧪 Testing Threads implementation...');
 
-  // Test URLs from the scraping guide
+  // Test URLs from the scraping guide and real examples
   const testUrls = [
     'https://www.threads.net/@natgeo/post/C8H5FiCtESk', // Thread from guide
-    'https://www.threads.net/@natgeo', // Profile from guide
+    'https://www.threads.net/@natgeo', // Profile from guide  
     'https://www.threads.net/t/C8H5FiCtESk', // Alternative URL format
   ];
 
@@ -34,15 +34,41 @@ async function testThreadsImplementation() {
   const metadataFetcher = new MetadataFetcher();
   
   try {
-    // Test metadata fetching for a simple Threads URL
-    const sampleUrl = testUrls[0];
-    console.log(`\\n🔍 Testing metadata fetch for: ${sampleUrl}`);
+    // Test live scraping for multiple URLs
+    console.log('\\n🚀 Testing live scraping for all URLs...');
     
-    // This would actually try to scrape - comment out for now to avoid rate limits
-    // const metadata = await metadataFetcher.fetchMetadata(sampleUrl);
-    // console.log('✅ Metadata result:', JSON.stringify(metadata, null, 2));
-    
-    console.log('⏭️  Metadata fetching test skipped (would require live scraping)');
+    for (let i = 0; i < testUrls.length; i++) {
+      const url = testUrls[i];
+      console.log(`\\n🔍 [${i + 1}/${testUrls.length}] Testing: ${url}`);
+      
+      try {
+        const metadata = await metadataFetcher.fetchMetadata(url);
+        console.log('✅ Live scraping result:');
+        console.log('  📰 Title:', metadata.title);
+        console.log('  📝 Description:', metadata.description?.substring(0, 80) + '...');
+        console.log('  🖼️  Image:', metadata.image ? 'Present' : 'None');
+        console.log('  🎯 Platform:', metadata.platform);
+        console.log('  🔗 Source:', metadata.source);
+        
+        if (metadata.metrics) {
+          console.log('  📊 Metrics:', metadata.metrics);
+        }
+        
+        if (metadata.author) {
+          console.log('  👤 Author:', metadata.author);
+          console.log('  ✅ Verified:', metadata.verified || false);
+        }
+        
+        // Add delay between requests to be respectful
+        if (i < testUrls.length - 1) {
+          console.log('  ⏳ Waiting 3 seconds before next request...');
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+        
+      } catch (error) {
+        console.error(`  ❌ Failed to fetch metadata for ${url}:`, error.message);
+      }
+    }
     
   } catch (error) {
     console.error('❌ MetadataFetcher test failed:', error.message);
