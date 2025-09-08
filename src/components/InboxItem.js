@@ -303,21 +303,15 @@ const InboxItem = ({ item, onProcessed, isSelected, onSelect }) => {
     if (item.urls.length === 0) return;
     
     setLoadingMetadata(true);
-    console.log(`🎯 InboxItem: Starting metadata fetch for: ${item.urls[0]}`);
-    
     try {
       // Fetch metadata for the first URL
       const result = await window.electronAPI.fetchMetadata(item.urls[0]);
-      console.log(`📡 InboxItem: Got API response:`, result.success ? '✅ Success' : '❌ Failed');
       
       if (result.success) {
         setMetadata(result.metadata);
-        console.log(`💾 InboxItem: Metadata set for ${item.urls[0]}: ${result.metadata.title?.substring(0, 50)}...`);
-      } else {
-        console.log(`❌ InboxItem: API returned error:`, result.error);
       }
     } catch (error) {
-      console.error('❌ InboxItem: Failed to fetch metadata:', error);
+      console.error('❌ Failed to fetch metadata:', error);
     } finally {
       setLoadingMetadata(false);
     }
