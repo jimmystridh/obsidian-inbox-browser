@@ -18,16 +18,18 @@ class TwitterAPIService {
       tweetIds = [tweetIds];
     }
 
-    console.log(`🐦 Fetching ${tweetIds.length} tweets via TwitterAPI.io`);
+    console.log(`🐦 TwitterAPI: Fetching ${tweetIds.length} tweets via TwitterAPI.io`);
 
     // Process in batches if needed
     const results = [];
     for (let i = 0; i < tweetIds.length; i += this.maxBatchSize) {
       const batch = tweetIds.slice(i, i + this.maxBatchSize);
+      console.log(`📡 TwitterAPI: Processing batch ${i / this.maxBatchSize + 1} with ${batch.length} tweets`);
       const batchResults = await this.processTweetBatch(batch);
       results.push(...batchResults);
     }
 
+    console.log(`🎯 TwitterAPI: Completed fetching, returning ${results.length} tweets`);
     return results;
   }
 
@@ -44,7 +46,7 @@ class TwitterAPIService {
       const response = await this.makeAPIRequest(endpoint, params);
       
       if (response.success && response.data && response.data.tweets) {
-        console.log(`✅ Successfully fetched ${response.data.tweets.length} tweets from TwitterAPI`);
+        console.log(`✅ TwitterAPI: Successfully fetched ${response.data.tweets.length} tweets`);
         
         // Log successful API usage
         await this.logAPIUsage(endpoint, tweetIds, true);
@@ -69,7 +71,7 @@ class TwitterAPIService {
         return [];
       }
     } catch (error) {
-      console.error('Twitter API request failed:', error.message);
+      console.error(`❌ TwitterAPI: Request failed for tweet ${tweetIds.join(',')}: ${error.message}`);
       
       // Log failed API usage
       await this.logAPIUsage(endpoint, tweetIds, false, error);
@@ -84,7 +86,7 @@ class TwitterAPIService {
     
     if (timeSinceLastRequest < this.requestDelay) {
       const waitTime = this.requestDelay - timeSinceLastRequest;
-      console.log(`⏱️ Rate limiting: waiting ${waitTime}ms since last request`);
+      console.log(`⏱️  TwitterAPI: Rate limiting, waiting ${Math.round(waitTime/1000)}s`);
       await new Promise(resolve => setTimeout(resolve, waitTime));
     }
     

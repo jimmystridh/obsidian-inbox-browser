@@ -122,26 +122,27 @@ class MetadataFetcher {
       return this.createEnhancedFallback(url, username, null);
     }
 
-    console.log(`🐦 Processing Twitter URL: ${url} (ID: ${tweetId}, User: @${username})`);
+    console.log(`🐦 Fetching Twitter/X data for: ${url} (ID: ${tweetId}, User: @${username})`);
 
     // Check cache first for this specific tweet ID
     try {
       const cachedTweet = await this.persistentCache.getTwitterDataByTweetId(tweetId);
       if (cachedTweet) {
-        console.log(`💾 Using cached TwitterAPI data for tweet ${tweetId}`);
+        console.log(`💾 Using cached Twitter data for tweet ${tweetId}`);
         return cachedTweet;
       }
     } catch (error) {
-      console.log(`⚠️ Error checking Twitter cache: ${error.message}`);
+      // Silent cache check
     }
 
     // Try TwitterAPI.io first (best quality)
     try {
+      console.log(`🔍 Calling TwitterAPI.io for tweet ${tweetId}...`);
       const tweets = await this.twitterAPI.getTweetsByIds([tweetId]);
       
       if (tweets && tweets.length > 0) {
         const tweet = tweets[0];
-        console.log(`✅ Got rich Twitter data via API: "${tweet.text.substring(0, 50)}..."`);
+        console.log(`✅ Twitter API success: "${tweet.text.substring(0, 50)}..."`);
         
         // Cache the rich Twitter data
         await this.persistentCache.cacheTwitterAPIData(tweet, url);
@@ -173,7 +174,7 @@ class MetadataFetcher {
     }
 
     // NO FALLBACK - TwitterAPI only
-    console.log(`❌ TwitterAPI failed for ${url} - no fallback allowed`);
+    console.log(`❌ TwitterAPI failed for ${url} - will show enhanced fallback`);
     
     return {
       url,
