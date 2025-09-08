@@ -250,17 +250,36 @@ async function extractInsights(item) {
 async function removeFromInbox(item) {
   try {
     let content = await fs.readFile(INBOX_PATH, 'utf-8');
-    const lines = content.split('\\n');
+    console.log(`📖 Original inbox has ${content.length} characters`);
+    
+    const lines = content.split('\n'); // Use \n not \\n
+    console.log(`📄 Split into ${lines.length} lines`);
     
     const exactItemLine = `${item.timestamp} ${item.content}`;
-    console.log(`🗑️  Removing exact line: "${exactItemLine}"`);
+    console.log(`🎯 Looking for exact line: "${exactItemLine}"`);
     
-    // Use exact line matching instead of includes() to prevent accidental deletions
+    // Find matching lines for debugging
+    const matchingLines = lines.filter(line => line.trim() === exactItemLine.trim());
+    console.log(`🔍 Found ${matchingLines.length} exact matches`);
+    
+    // Use exact line matching to prevent accidental deletions
     const filteredLines = lines.filter(line => line.trim() !== exactItemLine.trim());
     
-    console.log(`📊 Removed ${lines.length - filteredLines.length} lines from inbox`);
-    await fs.writeFile(INBOX_PATH, filteredLines.join('\\n'), 'utf-8');
+    console.log(`📊 Original: ${lines.length} lines, After filter: ${filteredLines.length} lines`);
+    
+    // SAFETY CHECK: Don't write if we'd remove too many lines
+    const removedCount = lines.length - filteredLines.length;
+    if (removedCount > 5) {
+      throw new Error(`SAFETY: Refusing to remove ${removedCount} lines - seems dangerous`);
+    }
+    
+    const newContent = filteredLines.join('\n'); // Use \n not \\n
+    console.log(`💾 Writing ${newContent.length} characters back to inbox`);
+    
+    await fs.writeFile(INBOX_PATH, newContent, 'utf-8');
+    console.log(`✅ Successfully removed ${removedCount} lines from inbox`);
   } catch (error) {
+    console.error(`❌ CRITICAL: removeFromInbox failed:`, error.message);
     throw new Error(`Failed to remove from inbox: ${error.message}`);
   }
 }
