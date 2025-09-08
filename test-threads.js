@@ -1,6 +1,5 @@
 const { ThreadsAPIService } = require('./src/services/ThreadsAPIService');
 const { MetadataFetcher } = require('./src/services/MetadataFetcher');
-const { ContentClassifier } = require('./src/services/ContentClassifier');
 
 async function testThreadsImplementation() {
   console.log('🧪 Testing Threads implementation...');
@@ -49,9 +48,7 @@ async function testThreadsImplementation() {
     console.error('❌ MetadataFetcher test failed:', error.message);
   }
 
-  console.log('\\n=== Testing ContentClassifier ===');
-  
-  const classifier = new ContentClassifier();
+  console.log('\\n=== Testing URL Type Detection ===');
   
   const testItems = [
     {
@@ -67,13 +64,11 @@ async function testThreadsImplementation() {
   ];
 
   for (const item of testItems) {
-    console.log(`\\n📊 Testing classification for: ${item.content}`);
-    const classification = classifier.classifyContent(item);
-    console.log('Classification result:', {
-      category: classification.category,
-      confidence: classification.confidence,
-      reasons: classification.reasons
-    });
+    console.log(`\\n🔗 Testing URL recognition for: ${item.content}`);
+    for (const url of item.urls) {
+      const urlType = metadataFetcher.getUrlType(url);
+      console.log(`  📝 ${url} -> ${urlType}`);
+    }
   }
 
   console.log('\\n=== Cleanup ===');

@@ -14,14 +14,21 @@ class ThreadsAPIService {
 
   async initBrowser() {
     if (!this.browser) {
-      this.browser = await chromium.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-      });
-      this.context = await this.browser.newContext({
-        viewport: { width: 1920, height: 1080 },
-        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      });
+      try {
+        this.browser = await chromium.launch({
+          headless: true,
+          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-web-security']
+        });
+        this.context = await this.browser.newContext({
+          viewport: { width: 1920, height: 1080 },
+          userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        });
+        console.log('🎭 Playwright browser initialized successfully');
+      } catch (error) {
+        console.error('❌ Failed to initialize Playwright browser:', error.message);
+        console.log('💡 Try running: npx playwright install chromium');
+        throw error;
+      }
     }
   }
 

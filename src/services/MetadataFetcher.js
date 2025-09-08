@@ -392,6 +392,11 @@ class MetadataFetcher {
       }
     } catch (error) {
       console.log(`🚫 ThreadsAPI failed for ${url}: ${error.message}`);
+      
+      // If it's a Playwright browser issue, provide helpful guidance
+      if (error.message.includes('chromium') || error.message.includes('browser')) {
+        console.log('💡 Playwright browser issue detected. Try running: npx playwright install chromium');
+      }
     }
 
     // Fallback to basic scraping

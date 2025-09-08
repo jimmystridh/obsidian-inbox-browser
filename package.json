@@ -13,6 +13,7 @@
     "test": "react-scripts test",
     "test-threads": "node test-threads.js",
     "test-bluesky": "node test-bluesky.js",
+    "check-env": "node check-environment.js",
     "eject": "react-scripts eject",
     "electron-dev": "ELECTRON_IS_DEV=1 electron .",
     "electron-pack": "electron-builder",
