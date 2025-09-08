@@ -252,9 +252,13 @@ async function removeFromInbox(item) {
     let content = await fs.readFile(INBOX_PATH, 'utf-8');
     const lines = content.split('\\n');
     
-    const itemLine = `${item.timestamp} ${item.content}`;
-    const filteredLines = lines.filter(line => !line.includes(itemLine));
+    const exactItemLine = `${item.timestamp} ${item.content}`;
+    console.log(`🗑️  Removing exact line: "${exactItemLine}"`);
     
+    // Use exact line matching instead of includes() to prevent accidental deletions
+    const filteredLines = lines.filter(line => line.trim() !== exactItemLine.trim());
+    
+    console.log(`📊 Removed ${lines.length - filteredLines.length} lines from inbox`);
     await fs.writeFile(INBOX_PATH, filteredLines.join('\\n'), 'utf-8');
   } catch (error) {
     throw new Error(`Failed to remove from inbox: ${error.message}`);
