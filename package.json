@@ -11,10 +11,12 @@
     "server": "node server.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test-threads": "node test-threads.js",
     "eject": "react-scripts eject",
     "electron-dev": "ELECTRON_IS_DEV=1 electron .",
     "electron-pack": "electron-builder",
-    "preelectron-pack": "npm run build"
+    "preelectron-pack": "npm run build",
+    "postinstall": "npx playwright install chromium"
   },
   "homepage": "./",
   "keywords": [
@@ -35,11 +37,13 @@
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.5.1",
-    "cheerio": "^1.0.0-rc.12",
+    "cheerio": "^1.1.2",
     "chokidar": "^3.5.3",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "jmespath": "^0.16.0",
     "lucide-react": "^0.294.0",
+    "playwright": "^1.55.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",

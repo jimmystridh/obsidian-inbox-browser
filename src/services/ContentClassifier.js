@@ -12,7 +12,8 @@ class ContentClassifier {
       'youtube.com', 'youtu.be', 'spotify.com', 'instagram.com',
       'tiktok.com', 'pinterest.com', 'reddit.com/r/cooking',
       'reddit.com/r/fitness', 'reddit.com/r/parenting', 'imdb.com',
-      'netflix.com', 'amazon.com/gp', 'booking.com', 'airbnb.com'
+      'netflix.com', 'amazon.com/gp', 'booking.com', 'airbnb.com',
+      'threads.net'
     ]);
     
     this.workKeywords = new Set([
@@ -64,6 +65,19 @@ class ContentClassifier {
     ]);
     
     this.personalTwitterAccounts = new Set([
+      'netflix', 'spotify', 'youtube', 'instagram', 'pinterest',
+      'buzzfeed', 'tasty', 'foodnetwork', 'travel', 'lonelyplanet',
+      'bbcearth', 'natgeo', 'discovery', 'history'
+    ]);
+    
+    this.workThreadsAccounts = new Set([
+      'github', 'microsoft', 'googledevelopers', 'awscloud', 'docker',
+      'kubernetesio', 'nodejs', 'reactjs', 'vuejs', 'angular',
+      'vercel', 'netlify', 'cloudflare', 'digitalocean', 'heroku',
+      'techcrunch', 'producthunt', 'ycombinator'
+    ]);
+    
+    this.personalThreadsAccounts = new Set([
       'netflix', 'spotify', 'youtube', 'instagram', 'pinterest',
       'buzzfeed', 'tasty', 'foodnetwork', 'travel', 'lonelyplanet',
       'bbcearth', 'natgeo', 'discovery', 'history'
@@ -191,6 +205,7 @@ class ContentClassifier {
     const result = { category: null, confidence: 0, reasons: [] };
 
     for (const url of item.urls) {
+      // Twitter/X classification
       if (url.includes('x.com/') || url.includes('twitter.com/')) {
         const username = url.match(/(?:x\.com|twitter\.com)\/([^/]+)/)?.[1];
         if (username) {
@@ -202,6 +217,22 @@ class ContentClassifier {
             result.category = 'personal';  
             result.confidence = Math.max(result.confidence, 0.7);
             result.reasons.push(`Personal Twitter account: @${username}`);
+          }
+        }
+      }
+      
+      // Threads classification
+      if (url.includes('threads.net/')) {
+        const username = url.match(/threads\.net\/@([^/]+)/)?.[1];
+        if (username) {
+          if (this.workThreadsAccounts.has(username.toLowerCase())) {
+            result.category = 'work';
+            result.confidence = Math.max(result.confidence, 0.7);
+            result.reasons.push(`Work Threads account: @${username}`);
+          } else if (this.personalThreadsAccounts.has(username.toLowerCase())) {
+            result.category = 'personal';
+            result.confidence = Math.max(result.confidence, 0.7);
+            result.reasons.push(`Personal Threads account: @${username}`);
           }
         }
       }

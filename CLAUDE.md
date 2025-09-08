@@ -47,9 +47,10 @@ npm run electron-pack
 
 **Backend Services**
 - `src/services/InboxParser.js` - Parses Obsidian markdown files into structured items
-- `src/services/MetadataFetcher.js` - Fetches rich metadata from URLs (Twitter, GitHub, YouTube, etc.)
+- `src/services/MetadataFetcher.js` - Fetches rich metadata from URLs (Twitter, GitHub, YouTube, Threads, etc.)
 - `src/services/ContentClassifier.js` - AI-powered content classification and tagging
 - `src/services/TwitterAPIService.js` - Twitter/X API integration for enhanced tweet metadata
+- `src/services/ThreadsAPIService.js` - Threads scraping service using Playwright for rich post/profile data
 - `src/services/PersistentCache.js` - SQLite-based caching for metadata
 
 **Electron Process**
@@ -78,6 +79,7 @@ npm run electron-pack
 
 The app automatically detects and provides rich previews for:
 - Twitter/X posts (with API integration)
+- **Threads posts and profiles (with Playwright scraping)**
 - YouTube videos
 - GitHub repositories  
 - Spotify content
@@ -103,6 +105,14 @@ The app uses SQLite via PersistentCache for:
 ### Testing
 
 The codebase uses React Testing Library for component tests. Run tests with standard React Scripts commands.
+
+**Threads Integration Testing**
+```bash
+# Test Threads scraping functionality 
+npm run test-threads
+```
+
+**Note**: The Threads scraper uses Playwright which requires Chromium. The browser is automatically installed via `postinstall` script.
 
 ### Configuration
 

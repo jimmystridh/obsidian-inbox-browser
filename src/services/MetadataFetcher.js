@@ -3,6 +3,7 @@ const http = require('http');
 const cheerio = require('cheerio');
 const { PersistentCache } = require('./PersistentCache');
 const { TwitterAPIService } = require('./TwitterAPIService');
+const { ThreadsAPIService } = require('./ThreadsAPIService');
 
 class MetadataFetcher {
   constructor() {
@@ -13,8 +14,9 @@ class MetadataFetcher {
     // Persistent cache with SQLite
     this.persistentCache = new PersistentCache('./cache', 24 * 60 * 60 * 1000);
     
-    // TwitterAPI service
+    // API services
     this.twitterAPI = new TwitterAPIService();
+    this.threadsAPI = new ThreadsAPIService();
     
     // Enhanced rate limiting (excluding Twitter which uses TwitterAPI)
     this.requestQueue = [];
@@ -300,27 +302,135 @@ class MetadataFetcher {
   }
 
   async fetchThreadsMetadata(url) {
+    console.log(`🧵 Processing Threads URL: ${url}`);
+
+    // Check cache first
     try {
+      const cachedThreads = await this.persistentCache.get(url);
+      if (cachedThreads) {
+        console.log(`💾 Using cached Threads data for ${url}`);
+        return cachedThreads;
+      }
+    } catch (error) {
+      console.log(`⚠️ Error checking Threads cache: ${error.message}`);
+    }
+
+    // Try ThreadsAPIService first (rich scraping)
+    try {
+      const threadsData = await this.threadsAPI.scrapeURL(url);
+      
+      if (threadsData && (threadsData.thread || threadsData.user)) {
+        let metadata;
+        
+        if (threadsData.thread) {
+          // It's a thread/post
+          const thread = threadsData.thread;
+          console.log(`✅ Got rich Threads post data: "${thread.text?.substring(0, 50) || 'No text'}..."`);
+          
+          metadata = {
+            url,
+            title: `@${thread.username}: ${thread.text?.substring(0, 80) || 'Threads post'}${(thread.text?.length || 0) > 80 ? '...' : ''}`,
+            description: thread.text || 'Threads post',
+            fullText: thread.text,
+            image: thread.user_pic || (thread.images && thread.images[0]) || null,
+            type: 'threads',
+            author: thread.username,
+            threadId: thread.id || thread.pk,
+            threadCode: thread.code,
+            platform: 'Threads',
+            source: 'threads-api',
+            verified: thread.user_verified,
+            publishedOn: thread.published_on ? new Date(thread.published_on * 1000).toISOString() : null,
+            metrics: {
+              likes: thread.like_count || 0,
+              replies: thread.reply_count || 0
+            },
+            hasAudio: thread.has_audio,
+            media: {
+              images: thread.images || [],
+              videos: thread.videos || [],
+              imageCount: thread.image_count || 0
+            },
+            replies: threadsData.replies || []
+          };
+        } else if (threadsData.user) {
+          // It's a profile
+          const user = threadsData.user;
+          console.log(`✅ Got rich Threads profile data: @${user.username || 'unknown'}`);
+          
+          metadata = {
+            url,
+            title: `@${user.username} on Threads`,
+            description: user.bio || `${user.full_name || user.username} on Threads`,
+            fullBio: user.bio,
+            image: user.profile_pic,
+            type: 'threads',
+            username: user.username,
+            fullName: user.full_name,
+            platform: 'Threads',
+            source: 'threads-api',
+            verified: user.is_verified,
+            isPrivate: user.is_private,
+            followers: user.followers,
+            bioLinks: user.bio_links || [],
+            recentThreads: threadsData.threads || []
+          };
+        }
+        
+        // Cache the result
+        if (metadata) {
+          const ttl = 6 * 60 * 60 * 1000; // 6 hours TTL for Threads content
+          await this.persistentCache.set(url, metadata, ttl);
+          console.log(`✅ Successfully fetched and cached Threads metadata for ${url}`);
+          return metadata;
+        }
+      }
+    } catch (error) {
+      console.log(`🚫 ThreadsAPI failed for ${url}: ${error.message}`);
+    }
+
+    // Fallback to basic scraping
+    try {
+      console.log(`🔄 Falling back to basic scraping for ${url}`);
       const response = await this.makeRequest(url);
       const $ = cheerio.load(response.data);
       
-      return {
+      const fallbackMetadata = {
         url,
         title: $('meta[property="og:title"]').attr('content') || 'Threads Post',
-        description: $('meta[property="og:description"]').attr('content') || '',
+        description: $('meta[property="og:description"]').attr('content') || 'Meta Threads post',
         image: $('meta[property="og:image"]').attr('content'),
         type: 'threads',
-        platform: 'Threads'
+        platform: 'Threads',
+        source: 'fallback-scraping'
       };
+      
+      // Cache fallback for shorter time
+      const shortTTL = 2 * 60 * 60 * 1000; // 2 hours
+      await this.persistentCache.set(url, fallbackMetadata, shortTTL);
+      
+      return fallbackMetadata;
     } catch (error) {
-      return {
+      console.log(`🚫 Fallback scraping failed for ${url}: ${error.message}`);
+      
+      // Final fallback
+      const finalFallback = {
         url,
         title: 'Threads Post',
-        description: 'Meta Threads post',
+        description: 'Meta Threads post - rich preview unavailable',
         image: null,
         type: 'threads',
-        platform: 'Threads'
+        platform: 'Threads',
+        error: error.message,
+        fallback: true,
+        source: 'final-fallback'
       };
+      
+      // Cache fallback for even shorter time
+      const veryShortTTL = 30 * 60 * 1000; // 30 minutes
+      await this.persistentCache.set(url, finalFallback, veryShortTTL);
+      
+      return finalFallback;
     }
   }
 
@@ -703,6 +813,24 @@ class MetadataFetcher {
       size: this.cache.size,
       keys: Array.from(this.cache.keys())
     };
+  }
+
+  // Cleanup method for proper shutdown
+  async cleanup() {
+    try {
+      if (this.threadsAPI) {
+        await this.threadsAPI.closeBrowser();
+      }
+      if (this.persistentCache) {
+        // Close persistent cache if it has cleanup methods
+        if (typeof this.persistentCache.close === 'function') {
+          await this.persistentCache.close();
+        }
+      }
+      console.log('✅ MetadataFetcher cleaned up successfully');
+    } catch (error) {
+      console.error('Error during MetadataFetcher cleanup:', error);
+    }
   }
 }
 
