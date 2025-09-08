@@ -137,10 +137,10 @@ class PersistentCache {
       const query = `
         SELECT metadata, expires_at, hits 
         FROM metadata_cache 
-        WHERE url = ? AND expires_at > ?
+        WHERE url = ?
       `;
 
-      this.db.get(query, [url, now], (err, row) => {
+      this.db.get(query, [url], (err, row) => {
         if (err) {
           reject(err);
           return;
@@ -216,23 +216,8 @@ class PersistentCache {
   }
 
   async cleanExpired() {
-    if (!this.isReady) return;
-
-    return new Promise((resolve, reject) => {
-      const now = Date.now();
-      const query = 'DELETE FROM metadata_cache WHERE expires_at < ?';
-
-      this.db.run(query, [now], function(err) {
-        if (err) {
-          reject(err);
-        } else {
-          if (this.changes > 0) {
-            console.log(`🧹 Cleaned ${this.changes} expired cache entries`);
-          }
-          resolve(this.changes);
-        }
-      });
-    });
+    // DISABLED: Never clean expired entries per user request
+    return 0;
   }
 
   async getCacheStats() {
@@ -417,22 +402,10 @@ class PersistentCache {
     }
   }
 
-  // Scheduled cleanup - call this periodically
+  // Scheduled cleanup - DISABLED per user request
   async scheduledCleanup() {
-    try {
-      const cleaned = await this.cleanExpired();
-      const stats = await this.getCacheStats();
-      
-      console.log(`🧹 Cache cleanup completed:`, {
-        cleaned,
-        active: stats.active,
-        total: stats.total
-      });
-      
-      return stats;
-    } catch (error) {
-      console.error('Error during scheduled cleanup:', error);
-    }
+    // DISABLED: Never clean cache entries - they persist forever
+    return { cleaned: 0, active: 0 };
   }
 }
 
