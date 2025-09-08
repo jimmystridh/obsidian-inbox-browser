@@ -5,7 +5,6 @@ const fs = require('fs').promises;
 const chokidar = require('chokidar');
 const { InboxParser } = require('./src/services/InboxParser');
 const { MetadataFetcher } = require('./src/services/MetadataFetcher');
-const { ContentClassifier } = require('./src/services/ContentClassifier');
 
 const app = express();
 const port = 6112;
@@ -22,7 +21,6 @@ if (process.env.NODE_ENV === 'production') {
 // Initialize services
 const inboxParser = new InboxParser();
 const metadataFetcher = new MetadataFetcher();
-const contentClassifier = new ContentClassifier();
 
 // Path to Obsidian inbox
 const OBSIDIAN_PATH = path.join(
@@ -96,39 +94,6 @@ app.post('/api/process-item', async (req, res) => {
   }
 });
 
-app.post('/api/classify-item', async (req, res) => {
-  try {
-    const { item } = req.body;
-    const classification = contentClassifier.classifyContent(item);
-    res.json({ success: true, classification });
-  } catch (error) {
-    console.error('Error classifying item:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-app.get('/api/classification-stats', async (req, res) => {
-  try {
-    const content = await fs.readFile(INBOX_PATH, 'utf-8');
-    const items = inboxParser.parseInboxContent(content);
-    const stats = contentClassifier.getClassificationStats(items);
-    res.json({ success: true, stats });
-  } catch (error) {
-    console.error('Error getting classification stats:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-app.post('/api/bulk-classify', async (req, res) => {
-  try {
-    const { items } = req.body;
-    const suggestions = contentClassifier.suggestBulkClassification(items);
-    res.json({ success: true, suggestions });
-  } catch (error) {
-    console.error('Error getting bulk classification suggestions:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 
 app.get('/api/test-twitter/:tweetId', async (req, res) => {
   try {
@@ -150,54 +115,40 @@ app.get('/api/test-twitter/:tweetId', async (req, res) => {
 
 // Enhanced item processing functions with work/personal separation
 async function processInboxItem(action, item, context = {}) {
-  // Classify content if not already classified
-  let classification = context.classification;
-  if (!classification) {
-    classification = contentClassifier.classifyContent(item);
-  }
-
-  // Add classification info to item for processing
-  const enhancedItem = { ...item, classification };
 
   switch (action) {
     case 'read-later':
-      await moveToReadingList(enhancedItem);
+      await moveToReadingList(item);
       break;
     case 'read-later-work':
-      await moveToWorkReadingList(enhancedItem);
+      await moveToWorkReadingList(item);
       break;
     case 'read-later-personal':
-      await moveToPersonalReadingList(enhancedItem);
+      await moveToPersonalReadingList(item);
       break;
     case 'archive':
-      await archiveItem(enhancedItem);
+      await archiveItem(item);
       break;
     case 'archive-work':
-      await archiveWorkItem(enhancedItem);
+      await archiveWorkItem(item);
       break;
     case 'archive-personal':
-      await archivePersonalItem(enhancedItem);
+      await archivePersonalItem(item);
       break;
     case 'schedule':
-      await scheduleItem(enhancedItem);
+      await scheduleItem(item);
       break;
     case 'schedule-work':
-      await scheduleWorkItem(enhancedItem);
+      await scheduleWorkItem(item);
       break;
     case 'schedule-personal':
-      await schedulePersonalItem(enhancedItem);
+      await schedulePersonalItem(item);
       break;
     case 'extract':
-      await extractInsights(enhancedItem);
-      break;
-    case 'classify-work':
-      await classifyAsWork(enhancedItem);
-      break;
-    case 'classify-personal':
-      await classifyAsPersonal(enhancedItem);
+      await extractInsights(item);
       break;
     case 'delete':
-      await removeFromInbox(enhancedItem);
+      await removeFromInbox(item);
       break;
     default:
       throw new Error(`Unknown action: ${action}`);
@@ -326,7 +277,7 @@ async function moveToWorkReadingList(item) {
   await ensureDirectoryExists(workPath);
   
   const readingListPath = path.join(workPath, 'Reading List.md');
-  await addToFile(readingListPath, item, '# Work Reading List\\n\\n', true);
+  await addToFile(readingListPath, item, '# Work Reading List\\n\\n');
   await removeFromInbox(item);
 }
 
@@ -335,7 +286,7 @@ async function archiveWorkItem(item) {
   await ensureDirectoryExists(workPath);
   
   const archivePath = path.join(workPath, 'Archive.md');
-  await addToFile(archivePath, item, '# Work Archive\\n\\n', true);
+  await addToFile(archivePath, item, '# Work Archive\\n\\n');
   await removeFromInbox(item);
 }
 
@@ -347,7 +298,7 @@ async function scheduleWorkItem(item) {
   const scheduleDate = getNextWorkday();
   const scheduleDateStr = scheduleDate.toISOString().split('T')[0];
   
-  await addToFile(schedulePath, item, '# Work Scheduled Items\\n\\n', true, scheduleDateStr);
+  await addToFile(schedulePath, item, '# Work Scheduled Items\\n\\n', scheduleDateStr);
   await removeFromInbox(item);
 }
 
@@ -357,7 +308,7 @@ async function moveToPersonalReadingList(item) {
   await ensureDirectoryExists(personalPath);
   
   const readingListPath = path.join(personalPath, 'Reading List.md');
-  await addToFile(readingListPath, item, '# Personal Reading List\\n\\n', true);
+  await addToFile(readingListPath, item, '# Personal Reading List\\n\\n');
   await removeFromInbox(item);
 }
 
@@ -366,7 +317,7 @@ async function archivePersonalItem(item) {
   await ensureDirectoryExists(personalPath);
   
   const archivePath = path.join(personalPath, 'Archive.md');
-  await addToFile(archivePath, item, '# Personal Archive\\n\\n', true);
+  await addToFile(archivePath, item, '# Personal Archive\\n\\n');
   await removeFromInbox(item);
 }
 
@@ -378,22 +329,10 @@ async function schedulePersonalItem(item) {
   const scheduleDate = getNextPersonalTime();
   const scheduleDateStr = scheduleDate.toISOString().split('T')[0];
   
-  await addToFile(schedulePath, item, '# Personal Scheduled Items\\n\\n', true, scheduleDateStr);
+  await addToFile(schedulePath, item, '# Personal Scheduled Items\\n\\n', scheduleDateStr);
   await removeFromInbox(item);
 }
 
-// Classification functions
-async function classifyAsWork(item) {
-  const originalClassification = contentClassifier.classifyContent(item);
-  contentClassifier.learnFromFeedback(item, 'work', originalClassification);
-  await moveToWorkReadingList(item);
-}
-
-async function classifyAsPersonal(item) {
-  const originalClassification = contentClassifier.classifyContent(item);
-  contentClassifier.learnFromFeedback(item, 'personal', originalClassification);
-  await moveToPersonalReadingList(item);
-}
 
 // Utility functions
 async function ensureDirectoryExists(dirPath) {
@@ -404,7 +343,7 @@ async function ensureDirectoryExists(dirPath) {
   }
 }
 
-async function addToFile(filePath, item, header, includeClassification = false, customDate = null) {
+async function addToFile(filePath, item, header, customDate = null) {
   try {
     let content = '';
     try {
@@ -414,16 +353,7 @@ async function addToFile(filePath, item, header, includeClassification = false, 
     }
     
     const timestamp = customDate || item.timestamp;
-    let newEntry = `${timestamp} ${item.content}`;
-    
-    if (includeClassification && item.classification) {
-      const tags = item.classification.suggestedTags.join(' ');
-      newEntry += ` ${tags}`;
-      
-      if (item.classification.confidence > 0) {
-        newEntry += ` (confidence: ${item.classification.confidence.toFixed(2)})`;
-      }
-    }
+    const newEntry = `${timestamp} ${item.content}`;
     
     content += newEntry + '\\n';
     await fs.writeFile(filePath, content, 'utf-8');

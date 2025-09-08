@@ -47,44 +47,6 @@ class APIClient {
     }
   }
 
-  async classifyItem(item) {
-    try {
-      const response = await fetch(`${this.baseURL}/api/classify-item`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ item })
-      });
-      return await response.json();
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  }
-
-  async getClassificationStats() {
-    try {
-      const response = await fetch(`${this.baseURL}/api/classification-stats`);
-      return await response.json();
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  }
-
-  async getBulkClassificationSuggestions(items) {
-    try {
-      const response = await fetch(`${this.baseURL}/api/bulk-classify`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ items })
-      });
-      return await response.json();
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  }
 
   async openExternal(url) {
     // For web version, just open in new tab

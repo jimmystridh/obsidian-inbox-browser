@@ -5,12 +5,10 @@ const chokidar = require('chokidar');
 const fs = require('fs').promises;
 const { InboxParser } = require('./services/InboxParser');
 const { MetadataFetcher } = require('./services/MetadataFetcher');
-const { ContentClassifier } = require('./services/ContentClassifier');
 
 let mainWindow;
 let inboxParser;
 let metadataFetcher;
-let contentClassifier;
 let fileWatcher;
 
 function createWindow() {
@@ -52,7 +50,6 @@ function createWindow() {
 function initializeServices() {
   inboxParser = new InboxParser();
   metadataFetcher = new MetadataFetcher();
-  contentClassifier = new ContentClassifier();
   
   // Setup file watcher for Obsidian files
   const obsidianPath = path.join(
@@ -146,54 +143,40 @@ async function processInboxItem(action, item, context = {}) {
     'Library/Mobile Documents/iCloud~md~obsidian/Documents/JS/0ZK'
   );
 
-  // Classify content if not already classified
-  let classification = context.classification;
-  if (!classification) {
-    classification = contentClassifier.classifyContent(item);
-  }
-
-  // Add classification info to item for processing
-  const enhancedItem = { ...item, classification };
 
   switch (action) {
     case 'read-later':
-      await moveToReadingList(enhancedItem, obsidianPath);
+      await moveToReadingList(item, obsidianPath);
       break;
     case 'read-later-work':
-      await moveToWorkReadingList(enhancedItem, obsidianPath);
+      await moveToWorkReadingList(item, obsidianPath);
       break;
     case 'read-later-personal':
-      await moveToPersonalReadingList(enhancedItem, obsidianPath);
+      await moveToPersonalReadingList(item, obsidianPath);
       break;
     case 'archive':
-      await archiveItem(enhancedItem, obsidianPath);
+      await archiveItem(item, obsidianPath);
       break;
     case 'archive-work':
-      await archiveWorkItem(enhancedItem, obsidianPath);
+      await archiveWorkItem(item, obsidianPath);
       break;
     case 'archive-personal':
-      await archivePersonalItem(enhancedItem, obsidianPath);
+      await archivePersonalItem(item, obsidianPath);
       break;
     case 'schedule':
-      await scheduleItem(enhancedItem, obsidianPath);
+      await scheduleItem(item, obsidianPath);
       break;
     case 'schedule-work':
-      await scheduleWorkItem(enhancedItem, obsidianPath);
+      await scheduleWorkItem(item, obsidianPath);
       break;
     case 'schedule-personal':
-      await schedulePersonalItem(enhancedItem, obsidianPath);
+      await schedulePersonalItem(item, obsidianPath);
       break;
     case 'extract':
-      await extractInsights(enhancedItem, obsidianPath);
-      break;
-    case 'classify-work':
-      await classifyAsWork(enhancedItem);
-      break;
-    case 'classify-personal':
-      await classifyAsPersonal(enhancedItem);
+      await extractInsights(item, obsidianPath);
       break;
     case 'delete':
-      await removeFromInbox(enhancedItem);
+      await removeFromInbox(item);
       break;
     default:
       throw new Error(`Unknown action: ${action}`);
@@ -359,32 +342,6 @@ async function schedulePersonalItem(item, obsidianPath) {
   await removeFromInbox(item);
 }
 
-// Classification functions
-async function classifyAsWork(item) {
-  // Learn from user feedback
-  const originalClassification = contentClassifier.classifyContent(item);
-  contentClassifier.learnFromFeedback(item, 'work', originalClassification);
-  
-  // Move to work reading list
-  const obsidianPath = path.join(
-    process.env.HOME,
-    'Library/Mobile Documents/iCloud~md~obsidian/Documents/JS/0ZK'
-  );
-  await moveToWorkReadingList(item, obsidianPath);
-}
-
-async function classifyAsPersonal(item) {
-  // Learn from user feedback
-  const originalClassification = contentClassifier.classifyContent(item);
-  contentClassifier.learnFromFeedback(item, 'personal', originalClassification);
-  
-  // Move to personal reading list
-  const obsidianPath = path.join(
-    process.env.HOME,
-    'Library/Mobile Documents/iCloud~md~obsidian/Documents/JS/0ZK'
-  );
-  await moveToPersonalReadingList(item, obsidianPath);
-}
 
 // Utility functions
 async function ensureDirectoryExists(dirPath) {
@@ -396,7 +353,7 @@ async function ensureDirectoryExists(dirPath) {
   }
 }
 
-async function addToFile(filePath, item, header, includeClassification = false, customDate = null) {
+async function addToFile(filePath, item, header, customDate = null) {
   try {
     let content = '';
     try {
@@ -406,16 +363,7 @@ async function addToFile(filePath, item, header, includeClassification = false, 
     }
     
     const timestamp = customDate || item.timestamp;
-    let newEntry = `${timestamp} ${item.content}`;
-    
-    if (includeClassification && item.classification) {
-      const tags = item.classification.suggestedTags.join(' ');
-      newEntry += ` ${tags}`;
-      
-      if (item.classification.confidence > 0) {
-        newEntry += ` (confidence: ${item.classification.confidence.toFixed(2)})`;
-      }
-    }
+    const newEntry = `${timestamp} ${item.content}`;
     
     content += newEntry + '\n';
     await fs.writeFile(filePath, content, 'utf-8');

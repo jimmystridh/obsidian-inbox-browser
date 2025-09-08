@@ -135,20 +135,9 @@ function App() {
   const filterItems = (items) => {
     let filtered = items;
 
-    // Apply classification and type filters
+    // Apply type filters
     if (selectedFilter !== 'all') {
-      if (selectedFilter.endsWith('-classified')) {
-        // Classification filter
-        const classificationCategory = selectedFilter.replace('-classified', '');
-        filtered = filtered.filter(item => {
-          // In a real app, this would use the actual classification
-          // For now, we'll simulate classification based on content patterns
-          return getSimulatedClassification(item) === classificationCategory;
-        });
-      } else {
-        // Content type filter
-        filtered = filtered.filter(item => item.type === selectedFilter);
-      }
+      filtered = filtered.filter(item => item.type === selectedFilter);
     }
 
     // Apply search filter
@@ -163,32 +152,6 @@ function App() {
     return filtered;
   };
 
-  // Temporary simulation of classification for filtering
-  const getSimulatedClassification = (item) => {
-    const content = item.content.toLowerCase();
-    const urls = item.urls.join(' ').toLowerCase();
-    
-    // Work indicators
-    if (urls.includes('github.com') || urls.includes('linkedin.com') || 
-        content.includes('api') || content.includes('programming') ||
-        content.includes('development') || content.includes('tech')) {
-      return 'work';
-    }
-    
-    // Personal indicators (Swedish terms, entertainment)
-    if (content.includes('träning') || content.includes('hemma') ||
-        content.includes('barn') || urls.includes('youtube.com') ||
-        urls.includes('spotify.com') || urls.includes('instagram.com')) {
-      return 'personal';
-    }
-    
-    // Mixed content
-    if (urls.includes('news.ycombinator.com') || content.includes('ai')) {
-      return 'mixed';
-    }
-    
-    return 'unclear';
-  };
 
   // Set up file change listener
   useEffect(() => {

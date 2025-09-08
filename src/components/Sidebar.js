@@ -226,17 +226,9 @@ const Sidebar = ({
   onSearchChange,
   onRefresh 
 }) => {
-  // Add classification-based filters
-  const classificationFilters = [
-    { key: 'work-classified', label: 'Work Items', count: 0, icon: <Briefcase size={16} /> },
-    { key: 'personal-classified', label: 'Personal Items', count: 0, icon: <Home size={16} /> },
-    { key: 'mixed-classified', label: 'Mixed Content', count: 0, icon: <Tag size={16} /> },
-    { key: 'unclear-classified', label: 'Needs Review', count: 0, icon: <Brain size={16} /> }
-  ];
 
   const filterOptions = [
     { key: 'all', label: 'All Items', count: stats?.total || 0 },
-    ...classificationFilters,
     { key: 'divider', label: '---', count: 0 },
     ...(stats?.byType ? Object.entries(stats.byType).map(([type, count]) => ({
       key: type,
@@ -244,11 +236,9 @@ const Sidebar = ({
       count
     })) : [])
   ].sort((a, b) => {
-    // Keep 'all' and classification filters at top
+    // Keep 'all' at top
     if (a.key === 'all') return -1;
     if (b.key === 'all') return 1;
-    if (a.key.endsWith('-classified')) return -1;
-    if (b.key.endsWith('-classified')) return 1;
     if (a.key === 'divider') return 0;
     return b.count - a.count;
   });

@@ -48,7 +48,6 @@ npm run electron-pack
 **Backend Services**
 - `src/services/InboxParser.js` - Parses Obsidian markdown files into structured items
 - `src/services/MetadataFetcher.js` - Fetches rich metadata from URLs (Twitter, GitHub, YouTube, Threads, etc.)
-- `src/services/ContentClassifier.js` - AI-powered content classification and tagging
 - `src/services/TwitterAPIService.js` - Twitter/X API integration for enhanced tweet metadata
 - `src/services/ThreadsAPIService.js` - Threads scraping service using Playwright for rich post/profile data
 - `src/services/PersistentCache.js` - SQLite-based caching for metadata
@@ -62,18 +61,14 @@ npm run electron-pack
 
 1. **File Watching**: Chokidar monitors `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/JS/0ZK/Inbox.md`
 2. **Parsing**: InboxParser extracts timestamped items from the inbox markdown
-3. **Classification**: ContentClassifier categorizes items (work/personal, content type)
-4. **Metadata**: MetadataFetcher enriches items with previews, thumbnails, and metadata
-5. **Processing**: Items can be moved to Reading List, Archive, Scheduled, or Insights files
+3. **Metadata**: MetadataFetcher enriches items with previews, thumbnails, and metadata
+4. **Processing**: Items can be moved to Reading List, Archive, Scheduled, or Insights files
 
 ### API Endpoints
 
 - `GET /api/inbox` - Get all inbox items
 - `POST /api/metadata` - Fetch metadata for a URL
 - `POST /api/process-item` - Process item with specific action
-- `POST /api/classify-item` - Classify content type
-- `GET /api/classification-stats` - Get classification statistics
-- `POST /api/bulk-classify` - Get bulk classification suggestions
 
 ### Content Types Recognized
 

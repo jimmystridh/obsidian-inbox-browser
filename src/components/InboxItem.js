@@ -281,17 +281,13 @@ const InboxItem = ({ item, onProcessed, isSelected, onSelect }) => {
   const [metadata, setMetadata] = useState(null);
   const [loadingMetadata, setLoadingMetadata] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [classification, setClassification] = useState(null);
-  const [loadingClassification, setLoadingClassification] = useState(false);
-  const [showClassificationActions, setShowClassificationActions] = useState(false);
   
   // Debug logging for frontend
   console.log(`🎨 Rendering item:`, {
     type: item.type,
     content: item.content.substring(0, 50) + '...',
     urls: item.urls,
-    timestamp: item.timestamp,
-    classification: classification?.category
+    timestamp: item.timestamp
   });
   
   const typeConfig = getTypeIcon(item.type);
@@ -302,28 +298,6 @@ const InboxItem = ({ item, onProcessed, isSelected, onSelect }) => {
     }
   }, [item.urls]);
 
-  useEffect(() => {
-    // Auto-classify items on load
-    if (!classification && !loadingClassification) {
-      fetchClassification();
-    }
-  }, [item]);
-
-  const fetchClassification = async () => {
-    setLoadingClassification(true);
-    
-    try {
-      const result = await window.electronAPI.classifyItem(item);
-      
-      if (result.success) {
-        setClassification(result.classification);
-      }
-    } catch (error) {
-      console.error('Failed to classify item:', error);
-    } finally {
-      setLoadingClassification(false);
-    }
-  };
 
   const fetchMetadata = async () => {
     if (item.urls.length === 0) return;
@@ -348,7 +322,7 @@ const InboxItem = ({ item, onProcessed, isSelected, onSelect }) => {
     setProcessing(true);
     
     try {
-      const context = classification ? { classification } : {};
+      const context = {};
       const result = await window.electronAPI.processItem(action, item, context);
       
       if (result.success) {
@@ -363,15 +337,6 @@ const InboxItem = ({ item, onProcessed, isSelected, onSelect }) => {
     }
   };
 
-  const getClassificationColor = (category) => {
-    const colors = {
-      work: { bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' },
-      personal: { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },
-      mixed: { bg: '#fef3c7', color: '#d97706', border: '#fed7aa' },
-      unclear: { bg: '#f3f4f6', color: '#6b7280', border: '#d1d5db' }
-    };
-    return colors[category] || colors.unclear;
-  };
 
   const handleExternalLink = (url) => {
     window.electronAPI.openExternal(url);
@@ -556,173 +521,31 @@ const InboxItem = ({ item, onProcessed, isSelected, onSelect }) => {
         </MetadataSection>
       )}
 
-      {/* Classification Display */}
-      {classification && (
-        <div style={{ margin: '0.75rem 0' }}>
-          <div style={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            gap: '0.5rem',
-            padding: '0.375rem 0.75rem',
-            background: getClassificationColor(classification.category).bg,
-            color: getClassificationColor(classification.category).color,
-            border: `1px solid ${getClassificationColor(classification.category).border}`,
-            borderRadius: '0.5rem',
-            fontSize: '0.75rem',
-            fontWeight: '500'
-          }}>
-            {classification.category === 'work' && <Briefcase size={12} />}
-            {classification.category === 'personal' && <Home size={12} />}
-            {classification.category === 'mixed' && <Tag size={12} />}
-            {classification.category === 'unclear' && <Brain size={12} />}
-            
-            <span style={{ textTransform: 'capitalize' }}>
-              {classification.category} ({Math.round(classification.confidence * 100)}%)
-            </span>
-            
-            {classification.suggestedTags && (
-              <span style={{ opacity: 0.7, marginLeft: '0.5rem' }}>
-                {classification.suggestedTags.slice(0, 2).join(' ')}
-              </span>
-            )}
-          </div>
-          
-          {classification.confidence < 0.7 && (
-            <button
-              onClick={() => setShowClassificationActions(!showClassificationActions)}
-              style={{
-                marginLeft: '0.5rem',
-                padding: '0.25rem 0.5rem',
-                background: 'transparent',
-                border: '1px solid #e2e8f0',
-                borderRadius: '0.375rem',
-                fontSize: '0.75rem',
-                cursor: 'pointer',
-                color: '#6b7280'
-              }}
-            >
-              {showClassificationActions ? 'Hide' : 'Correct'}
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Classification Actions */}
-      {showClassificationActions && (
-        <div style={{ 
-          margin: '0.75rem 0',
-          padding: '0.75rem',
-          background: '#f8fafc',
-          borderRadius: '0.375rem',
-          border: '1px solid #e2e8f0'
-        }}>
-          <p style={{ fontSize: '0.75rem', color: '#4a5568', marginBottom: '0.5rem' }}>
-            Incorrect classification? Help improve accuracy:
-          </p>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <ActionButton 
-              onClick={() => handleAction('classify-work')}
-              disabled={processing}
-              style={{ background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe' }}
-            >
-              <Briefcase size={12} />
-              Mark as Work
-            </ActionButton>
-            <ActionButton 
-              onClick={() => handleAction('classify-personal')}
-              disabled={processing}
-              style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}
-            >
-              <Home size={12} />
-              Mark as Personal
-            </ActionButton>
-          </div>
-        </div>
-      )}
 
       <Actions>
-        {/* Smart Classification-based Actions */}
-        {classification?.category === 'work' && (
-          <>
-            <ActionButton 
-              onClick={() => handleAction('read-later-work')}
-              disabled={processing}
-              variant="primary"
-            >
-              <Briefcase size={12} />
-              Work Reading
-            </ActionButton>
-            <ActionButton 
-              onClick={() => handleAction('archive-work')}
-              disabled={processing}
-            >
-              <Archive size={12} />
-              Work Archive
-            </ActionButton>
-            <ActionButton 
-              onClick={() => handleAction('schedule-work')}
-              disabled={processing}
-            >
-              <Calendar size={12} />
-              Schedule Work
-            </ActionButton>
-          </>
-        )}
-        
-        {classification?.category === 'personal' && (
-          <>
-            <ActionButton 
-              onClick={() => handleAction('read-later-personal')}
-              disabled={processing}
-              variant="primary"
-            >
-              <Home size={12} />
-              Personal Reading
-            </ActionButton>
-            <ActionButton 
-              onClick={() => handleAction('archive-personal')}
-              disabled={processing}
-            >
-              <Archive size={12} />
-              Personal Archive
-            </ActionButton>
-            <ActionButton 
-              onClick={() => handleAction('schedule-personal')}
-              disabled={processing}
-            >
-              <Calendar size={12} />
-              Schedule Personal
-            </ActionButton>
-          </>
-        )}
-        
-        {/* Generic actions for mixed/unclear content */}
-        {(!classification || classification.category === 'mixed' || classification.category === 'unclear') && (
-          <>
-            <ActionButton 
-              onClick={() => handleAction('read-later')}
-              disabled={processing}
-              variant="primary"
-            >
-              <BookOpen size={12} />
-              Read Later
-            </ActionButton>
-            <ActionButton 
-              onClick={() => handleAction('archive')}
-              disabled={processing}
-            >
-              <Archive size={12} />
-              Archive
-            </ActionButton>
-            <ActionButton 
-              onClick={() => handleAction('schedule')}
-              disabled={processing}
-            >
-              <Calendar size={12} />
-              Schedule
-            </ActionButton>
-          </>
-        )}
+        {/* Standard Actions */}
+        <ActionButton 
+          onClick={() => handleAction('read-later')}
+          disabled={processing}
+          variant="primary"
+        >
+          <BookOpen size={12} />
+          Read Later
+        </ActionButton>
+        <ActionButton 
+          onClick={() => handleAction('archive')}
+          disabled={processing}
+        >
+          <Archive size={12} />
+          Archive
+        </ActionButton>
+        <ActionButton 
+          onClick={() => handleAction('schedule')}
+          disabled={processing}
+        >
+          <Calendar size={12} />
+          Schedule
+        </ActionButton>
         
         {/* Always available actions */}
         <ActionButton 
