@@ -25,17 +25,15 @@ class PersistentCache {
           console.error('Error opening database:', err);
           return;
         }
-        console.log('📦 Connected to SQLite metadata cache');
+        // Connected to SQLite metadata cache
       });
 
       // Create cache table with TTL support
       await this.createTable();
       
-      // Clean expired entries on startup
-      await this.cleanExpired();
+      // Note: Automatic expiration disabled per user request
       
       this.isReady = true;
-      console.log('✅ Persistent cache initialized');
     } catch (error) {
       console.error('Error initializing cache:', error);
     }
@@ -93,7 +91,7 @@ class PersistentCache {
         
         completed++;
         if (completed === total) {
-          console.log('✅ Schema migration completed');
+          // Schema migration completed
           callback();
         }
       });
@@ -152,10 +150,9 @@ class PersistentCache {
           // Update hit count and last accessed time
           this.updateHitCount(url);
           
-          console.log(`💾 Cache HIT for: ${url} (hits: ${row.hits + 1})`);
+          // Cache hit
           resolve(JSON.parse(row.metadata));
         } else {
-          console.log(`💸 Cache MISS for: ${url}`);
           resolve(null);
         }
       });
@@ -194,7 +191,7 @@ class PersistentCache {
           console.error('Error caching metadata:', err);
           reject(err);
         } else {
-          console.log(`💾 Cached ${contentType} metadata for: ${url} (source: ${apiSource}, expires: ${new Date(expireTime).toISOString()})`);
+          // Cached metadata
           resolve(true);
         }
       });

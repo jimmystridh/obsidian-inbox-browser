@@ -32,18 +32,13 @@ class MetadataFetcher {
       'linkedin.com': 2000     // 2 seconds for LinkedIn
     };
     
-    // Schedule periodic cleanup
-    setInterval(() => {
-      this.persistentCache.scheduledCleanup();
-    }, 60 * 60 * 1000); // Every hour
+    // Note: Automatic cleanup removed per user request
+    // Cache entries will persist until manually cleared
   }
 
   async fetchMetadata(url) {
-    console.log(`🔍 Fetching metadata for: ${url}`);
-    
     // Check in-memory cache first (fastest)
     if (this.cache.has(url)) {
-      console.log(`💾 Using in-memory cache for: ${url}`);
       return this.cache.get(url);
     }
 
@@ -56,14 +51,12 @@ class MetadataFetcher {
         return cachedMetadata;
       }
     } catch (error) {
-      console.log(`⚠️  Error reading from persistent cache: ${error.message}`);
+      // Silent cache miss
     }
 
     // Not in cache, fetch fresh data
     try {
       const urlType = this.getUrlType(url);
-      console.log(`🏷️  URL type identified as: ${urlType}`);
-      
       const metadata = await this.processUrl(url);
       
       // Cache the result in both caches
@@ -73,11 +66,9 @@ class MetadataFetcher {
       const ttl = this.persistentCache.getTTLForType(urlType);
       await this.persistentCache.set(url, metadata, ttl);
       
-      console.log(`✅ Successfully fetched and cached metadata for ${url}: ${metadata.title}`);
-      
       return metadata;
     } catch (error) {
-      console.error(`❌ Error fetching metadata for ${url}:`, error.message);
+      // Only log errors, not routine operations
       
       // Create fallback metadata
       const fallbackMetadata = {
@@ -757,8 +748,6 @@ class MetadataFetcher {
       // Extra delay if hitting the same domain consecutively
       const actualDelay = lastDomain === domain ? delay * 1.5 : delay;
       
-      console.log(`🕐 Processing request for ${domain} (delay: ${actualDelay}ms)`);
-      
       await request();
       lastDomain = domain;
       
@@ -769,7 +758,6 @@ class MetadataFetcher {
     }
     
     this.isProcessing = false;
-    console.log(`✅ Request queue processed (${this.requestQueue.length} remaining)`);
   }
 
   getUrlType(url) {

@@ -38,12 +38,9 @@ class BlueskyAPIService {
 
       if (identifier && password) {
         this.credentials = { identifier, password };
-        console.log('📘 Bluesky credentials loaded from .env file');
-      } else {
-        console.log('⚠️  Bluesky credentials not found in .env file');
       }
     } catch (error) {
-      console.log('📘 No .env file found, Bluesky API will work in read-only mode');
+      // No .env file found, will work in read-only mode
     }
   }
 
