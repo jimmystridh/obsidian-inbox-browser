@@ -630,15 +630,6 @@ const InboxItem = ({ item, onProcessed, isSelected, onSelect }) => {
           Schedule
         </ActionButton>
         
-        {/* Always available actions */}
-        <ActionButton 
-          onClick={() => handleAction('extract')}
-          disabled={processing}
-        >
-          <Eye size={12} />
-          Extract
-        </ActionButton>
-        
         <ActionButton 
           onClick={() => handleAction('delete')}
           disabled={processing}
