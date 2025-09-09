@@ -48,6 +48,45 @@ class APIClient {
   }
 
 
+  async createNote(url, category, userContext) {
+    try {
+      const response = await fetch(`${this.baseURL}/api/create-note`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ url, category, userContext })
+      });
+      return await response.json();
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async previewNote(url, category, userContext) {
+    try {
+      const response = await fetch(`${this.baseURL}/api/preview-note`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ url, category, userContext })
+      });
+      return await response.json();
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getNoteCategories() {
+    try {
+      const response = await fetch(`${this.baseURL}/api/note-categories`);
+      return await response.json();
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
   async openExternal(url) {
     // For web version, just open in new tab
     window.open(url, '_blank');
@@ -79,9 +118,9 @@ window.electronAPI = {
   loadInbox: () => apiClient.loadInbox(),
   fetchMetadata: (url) => apiClient.fetchMetadata(url),
   processItem: (action, item, context) => apiClient.processItem(action, item, context),
-  classifyItem: (item) => apiClient.classifyItem(item),
-  getClassificationStats: () => apiClient.getClassificationStats(),
-  getBulkClassificationSuggestions: (items) => apiClient.getBulkClassificationSuggestions(items),
+  createNote: (url, category, userContext) => apiClient.createNote(url, category, userContext),
+  previewNote: (url, category, userContext) => apiClient.previewNote(url, category, userContext),
+  getNoteCategories: () => apiClient.getNoteCategories(),
   openExternal: (url) => apiClient.openExternal(url),
   onInboxFileChanged: (callback) => apiClient.onInboxFileChanged(callback)
 };

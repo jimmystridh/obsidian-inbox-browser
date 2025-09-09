@@ -17,6 +17,10 @@ import {
   Clock,
   CheckSquare,
   Square,
+  NotebookPen,
+  Video,
+  Code,
+  Lightbulb,
   Briefcase,
   Home,
   Tag,
@@ -336,6 +340,33 @@ const InboxItem = ({ item, onProcessed, isSelected, onSelect }) => {
     }
   };
 
+  const handleNoteCreation = async (category) => {
+    setProcessing(true);
+    
+    try {
+      const url = item.urls[0];
+      const userContext = {
+        notes: '', // Could be filled from a modal later
+        priority: 'medium',
+        tags: []
+      };
+      
+      console.log(`📝 Creating ${category} note for: ${url}`);
+      
+      const result = await window.electronAPI.createNote(url, category, userContext);
+      
+      if (result.success) {
+        console.log(`✅ Note created: ${result.filename}`);
+        onProcessed(item); // Remove from inbox
+      } else {
+        console.error('❌ Note creation failed:', result.error);
+      }
+    } catch (error) {
+      console.error(`❌ Failed to create ${category} note:`, error);
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   const handleExternalLink = (url) => {
     window.electronAPI.openExternal(url);
@@ -522,11 +553,64 @@ const InboxItem = ({ item, onProcessed, isSelected, onSelect }) => {
 
 
       <Actions>
+        {/* Smart Note Creation Actions */}
+        {item.urls.length > 0 && (
+          <>
+            {(item.type === 'website' || item.type === 'hackernews') && (
+              <ActionButton 
+                onClick={() => handleNoteCreation('ToRead')}
+                disabled={processing}
+                variant="primary"
+                style={{ background: '#3b82f6', color: 'white' }}
+              >
+                <NotebookPen size={12} />
+                Create Reading Note
+              </ActionButton>
+            )}
+            
+            {item.type === 'youtube' && (
+              <ActionButton 
+                onClick={() => handleNoteCreation('ToWatch')}
+                disabled={processing}
+                variant="primary"
+                style={{ background: '#dc2626', color: 'white' }}
+              >
+                <Video size={12} />
+                Create Watch Note
+              </ActionButton>
+            )}
+            
+            {item.type === 'github' && (
+              <ActionButton 
+                onClick={() => handleNoteCreation('Resources')}
+                disabled={processing}
+                variant="primary"
+                style={{ background: '#059669', color: 'white' }}
+              >
+                <Code size={12} />
+                Create Tool Note
+              </ActionButton>
+            )}
+            
+            {(item.type === 'twitter' || item.type === 'bluesky' || item.type === 'threads') && (
+              <ActionButton 
+                onClick={() => handleNoteCreation('Insights')}
+                disabled={processing}
+                variant="primary"
+                style={{ background: '#7c3aed', color: 'white' }}
+              >
+                <Lightbulb size={12} />
+                Create Insight Note
+              </ActionButton>
+            )}
+          </>
+        )}
+        
         {/* Standard Actions */}
         <ActionButton 
           onClick={() => handleAction('read-later')}
           disabled={processing}
-          variant="primary"
+          variant="secondary"
         >
           <BookOpen size={12} />
           Read Later

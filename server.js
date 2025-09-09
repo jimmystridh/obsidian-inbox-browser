@@ -5,6 +5,7 @@ const fs = require('fs').promises;
 const chokidar = require('chokidar');
 const { InboxParser } = require('./src/services/InboxParser');
 const { MetadataFetcher } = require('./src/services/MetadataFetcher');
+const { NoteTemplateService } = require('./src/services/NoteTemplateService');
 
 const app = express();
 const port = 6112;
@@ -18,16 +19,17 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'build')));
 }
 
-// Initialize services
-const inboxParser = new InboxParser();
-const metadataFetcher = new MetadataFetcher();
-
 // Path to Obsidian inbox
 const OBSIDIAN_PATH = path.join(
   process.env.HOME,
   'Library/Mobile Documents/iCloud~md~obsidian/Documents/JS/0ZK'
 );
 const INBOX_PATH = path.join(OBSIDIAN_PATH, 'Inbox.md');
+
+// Initialize services
+const inboxParser = new InboxParser();
+const metadataFetcher = new MetadataFetcher();
+const noteTemplateService = new NoteTemplateService(OBSIDIAN_PATH);
 
 // WebSocket-like functionality using Server-Sent Events
 let sseClients = [];
@@ -95,6 +97,75 @@ app.post('/api/process-item', async (req, res) => {
 });
 
 
+// Note creation endpoints
+app.post('/api/create-note', async (req, res) => {
+  try {
+    const { url, category, userContext } = req.body;
+    
+    console.log(`📝 Creating note for: ${url} (category: ${category})`);
+    
+    // Get metadata for the URL
+    const metadata = await metadataFetcher.fetchMetadata(url);
+    
+    // Generate note content
+    const noteContent = noteTemplateService.generateNote(metadata, category, userContext);
+    const filename = noteTemplateService.generateFilename(metadata, category, userContext);
+    const { categoryPath, fullPath } = noteTemplateService.getNotePath(category, filename);
+    
+    // Ensure directory exists
+    await ensureDirectoryExists(categoryPath);
+    
+    // Write the note file
+    await fs.writeFile(fullPath, noteContent, 'utf-8');
+    
+    console.log(`✅ Created note: ${filename} in ${category}/`);
+    
+    res.json({ 
+      success: true, 
+      notePath: fullPath,
+      filename,
+      category
+    });
+  } catch (error) {
+    console.error('❌ Error creating note:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/preview-note', async (req, res) => {
+  try {
+    const { url, category, userContext } = req.body;
+    
+    // Get metadata for the URL
+    const metadata = await metadataFetcher.fetchMetadata(url);
+    
+    // Generate note content for preview
+    const noteContent = noteTemplateService.generateNote(metadata, category, userContext);
+    const filename = noteTemplateService.generateFilename(metadata, category, userContext);
+    
+    res.json({ 
+      success: true, 
+      noteContent,
+      filename,
+      category,
+      metadata
+    });
+  } catch (error) {
+    console.error('❌ Error generating note preview:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/note-categories', async (req, res) => {
+  try {
+    const categories = noteTemplateService.getAvailableCategories();
+    res.json({ success: true, categories });
+  } catch (error) {
+    console.error('❌ Error getting note categories:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.get('/api/test-twitter/:tweetId', async (req, res) => {
   try {
     const { tweetId } = req.params;
@@ -149,6 +220,9 @@ async function processInboxItem(action, item, context = {}) {
       break;
     case 'delete':
       await removeFromInbox(item);
+      break;
+    case 'create-note':
+      await createNoteFromItem(item, context);
       break;
     default:
       throw new Error(`Unknown action: ${action}`);
@@ -414,6 +488,48 @@ function getNextPersonalTime() {
   }
   
   return date;
+}
+
+// Note creation function
+async function createNoteFromItem(item, context) {
+  try {
+    const url = item.urls[0]; // Use first URL for metadata
+    if (!url) {
+      throw new Error('No URL found in item for note creation');
+    }
+    
+    const { category = 'Resources', userContext = {} } = context;
+    
+    console.log(`📝 Creating note from inbox item: ${url}`);
+    
+    // Get rich metadata
+    const metadata = await metadataFetcher.fetchMetadata(url);
+    
+    // Generate note content
+    const noteContent = noteTemplateService.generateNote(metadata, category, userContext);
+    const filename = noteTemplateService.generateFilename(metadata, category, userContext);
+    const { categoryPath, fullPath } = noteTemplateService.getNotePath(category, filename);
+    
+    // Ensure directory exists
+    await ensureDirectoryExists(categoryPath);
+    
+    // Write the note file
+    await fs.writeFile(fullPath, noteContent, 'utf-8');
+    
+    // Remove from inbox after successful note creation
+    await removeFromInbox(item);
+    
+    console.log(`✅ Created note and removed from inbox: ${filename}`);
+    
+    return {
+      notePath: fullPath,
+      filename,
+      category
+    };
+  } catch (error) {
+    console.error('❌ Failed to create note from item:', error);
+    throw error;
+  }
 }
 
 process.on('SIGINT', () => {
