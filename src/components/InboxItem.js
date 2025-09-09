@@ -17,7 +17,7 @@ import {
   Clock,
   CheckSquare,
   Square,
-  NotebookPen,
+  Edit,
   Video,
   Code,
   Lightbulb,
@@ -563,7 +563,7 @@ const InboxItem = ({ item, onProcessed, isSelected, onSelect }) => {
                 variant="primary"
                 style={{ background: '#3b82f6', color: 'white' }}
               >
-                <NotebookPen size={12} />
+                <Edit size={12} />
                 Create Reading Note
               </ActionButton>
             )}
